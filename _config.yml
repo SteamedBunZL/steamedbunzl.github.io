@@ -48,7 +48,7 @@ kramdown:
 
 # Google Analytics
 ga_track_id: 'UA-100553217-1'            # Format: UA-xxxxxx-xx
-ga_domain: https://steamedbunzl.github.io/blog/
+ga_domain: https://steamedbunzl.github.io
 
 
 
