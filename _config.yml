@@ -5,7 +5,7 @@ header-img: img/home-bg.jpg
 email: stevezhang@tcl.com
 description: ""
 keyword: ""
-url: "https://steamedbunzl.me"              # your host, for absolute URL
+url: "https://stevezhang.me"              # your host, for absolute URL
 baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
 
 
@@ -38,8 +38,8 @@ markdown: kramdown
 kramdown:
   input: GFM                            # use Github Flavored Markdown !important
 
-
-
+# Baidu Analytics
+ba_track_id: df0a3f708e488aa8f7150a4069b491a0
 
 
 # Analytics settings
@@ -48,7 +48,7 @@ kramdown:
 
 # Google Analytics
 ga_track_id: 'UA-100553217-1'            # Format: UA-xxxxxx-xx
-ga_domain: https://steamedbunzl.github.io
+ga_domain: stevezhang.me
 
 
 
