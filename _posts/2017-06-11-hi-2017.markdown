@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "Hi,2017 写点想对自己说的话"
+title:      "Hi 2017，写点想对自己说的话"
 date:       2017-06-11 12:00:00
 author:     "ZhangLong"
 catalog: true
