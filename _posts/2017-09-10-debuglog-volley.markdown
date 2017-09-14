@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "结合Volley和Logger设计自己的DebugLog日志输出工具"
-date:       2017-09-014 12:00:00
+date:       2017-09-10 12:00:00
 author:     "ZhangLong"
 catalog: true
 ---
