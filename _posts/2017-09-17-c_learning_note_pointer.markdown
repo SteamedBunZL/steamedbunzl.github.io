@@ -91,7 +91,7 @@ int main(){
 
 ```c
     int main(){
-      int buf[2][3] = {{1,2,3},{4,5,6}};
+      int buf[2][3]; //int buf[2][3] = {{1,2,3},{4,5,6}};
       
       int *p[3];//指针数组
       
@@ -109,7 +109,7 @@ int main(){
       for(i = 0;i<2;i++){
           for(j = 0;j<3;j++){
               printf("%d\n",p[i][j]);
-              //printf("%d\n", *(*(p + i) + j));
+              //printf("%d\n", *(*(p + i) + j)); 指针的方式
           }
       }
       
