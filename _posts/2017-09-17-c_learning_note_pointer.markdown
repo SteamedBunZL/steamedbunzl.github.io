@@ -120,3 +120,147 @@ int main(){
 
 
 
+## 三、指针做为函数的参数
+
+#### 1.把一维数组作为函数参数传递
+
+```c
+#include <studio.h>
+
+void test(int n){
+    n++;//值传递，形参再怎么改变不改变实参的值
+}
+
+void test1(int *n){
+    (*n)++;
+}
+
+int main(){
+  int i = 100;
+  test(i);
+  printf("i = %d\n",i);// 输出i = 100;
+  test1(&i);
+  printf("i = %d\n",i);// 输出i = 101;
+  
+  
+  //经常用指针访问数组
+  int a = 10;
+  int *p = &a;
+  *p = 100;
+  printf("%d\n",*p);
+  //很少直接用指针指向一个变量，然后通过*方式访问变量
+  
+  return 0;
+}
+```
+
+![image_point3](/img/image_point3.png)
+
+通过函数的指针参数可以间接实现形参修改实参的值，比如scanf("%d",&i)，所有需要在函数内部修改实参的值，都需要将指针做为函数的参数调用实现。
+
+```c
+void set_array(int buf[]){//数组名代表的数组的首地址
+  printf("buf = %d\n",sizeof(buf));//输出 4 证明它是一个指针 所以形参等同于(int *buf)
+  buf[0] = 100;
+  buf[1] = 200;
+  // *buff = 100;
+  // buff++;
+  // *buff = 200;
+}
+
+void print_array(int buf[],int n){
+  int i;
+  for(i = 0; i<n;i++){
+      printf("buf[%d] = %d\n",i,buf[i]);
+  }
+}
+
+int main(){
+  int buf[] = {1,2,3,4,5,6,7,8,9,10,11,12};
+  printf("buf = %d\n",sizeof(buf));//输出40 证明它是一个数组
+  set_array(buf);//放的是数组的首地址，是个指针 等价于
+  //set_array(&buf);
+  print_array(buf,sizeof(buf)/sizeof(int));//注意这是标准写法
+  return 0;
+}
+```
+
+一维数组名作为函数的参数，当数组名作为函数参数时，C语言将数组名解释为指针
+
+int buf[] == int *buf 一般用后者的写法
+
+本质是指针，所以如果是数组是参数的时候，要传入数组的大小维度，因为在函数内部用sizeof是没意义的
+
+
+
+#### 2.把二维数组名作为函数参数传递
+
+```c
+void print_buf(const int (*p)[3],int a,int b){//将二维数组做为函数参数传递的时候，定义的指针类型，这个3一定要和定义数组的地方的列数对应
+  //通过const标示，不需要修改参数的值
+  int i;
+  int j;
+  for(i = 0;i<2;i++){
+      for(j = 0;j<3;j++){
+          printf("p[%d][%d] = %d\n",i,j,p[i][j]);
+      }
+  }
+}
+
+int main(){
+    printf_buf(buf,sizeof(buf)/sizeof(buf[0]),sizeof(buf[0])/sizeof(int));//分别代表二维数组的行数和列数
+}
+```
+
+#### 3.const 关键字保护数组内容
+
+```c
+void mystrcat(char *s1,const char *s2){//第一个参数是要被修改，第二个参数不被修改，用于保护，会报错
+  int len = 0;
+  while(s2[len]){
+    len++;
+  }
+  while(*s1){
+    s1++;
+  }
+  int i;
+  for(i = 0;i<len;i++){
+    *s1 = *s2;
+    s1++;
+    s2++;
+  }
+}
+
+int main(){
+   char s1[10] = "abc";
+  char s2[10] = "bcd"
+    mystrcat(s1,s2);//abcbcd
+  
+}
+```
+
+定义了const的指针参数，只读，不能修改
+
+
+
+#### 4.将指针作为函数的返回值
+
+```c
+char *mystr(const char *s,char c){
+    while(*s){
+      	if(*s == c)
+          return s;
+        s++;
+    }
+  	return NULL;
+}
+
+int main(){
+  char str[100] = "hello world";
+  char *s = strchr(str,'0');
+  printf("s = %s\n",s);
+  mystr(str,'0');//返回 o world 如果没有就返回<null>空
+  return 0;
+}
+```
+
