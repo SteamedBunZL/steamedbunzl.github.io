@@ -264,3 +264,171 @@ int main(){
 }
 ```
 
+
+
+## 四、函数指针
+
+
+
+#### 1.函数指针的定义
+
+```c
+int add(int a,int b){
+    return a+b;
+}
+
+int max(int a,int b){
+    return a>b?a:b;
+}
+
+void print_array(int *s,int n){
+    int i;
+  	for(i = 0;i<n;i++){
+        printf("%d\n",s[i]);
+    }
+}
+
+int main(){
+  int (*p)(int,int);//定义了一个指向函数的指针，可以指向两个参数，都是int,返回值也是Int这种类型的函数,在这里p是不能指向print_array函数的
+  
+  int status = 0;
+  scanf("%d",&status);
+  //p = add;//直接与函数的名字，代表函数的地址，将add这个函数的地址复制给指针变量p
+  if(status ==1)
+    p = max;
+  else
+    p = add;
+  
+  int i = 0;
+  //编译器在编译i = p(5,7)的时候，根本就不知道要调用什么代码，运行期才知道
+  i = add(5,7);//i = p(5,7);通过指针变量间接的调用指针指向的函数
+  printf("i = %d\n",i);
+  
+  p = print_array;//类型不周的赋值，这种语句在C++中是编译通不过的
+  
+  void (*p1)(int *,int);
+  void (*p)(int,char *);//定义了一个指向参数为int,char* 返回值为void的函数指针
+  void *p(int,char *);//声明了一个函数，函数的名字叫p,函数的返回值是void *,函数的参数分别是int 和char* 注意和上面的区别
+  
+  //定义一个参数为int*返回值为int *的指向函数的指针
+  int *(*p)(int *);
+  
+  
+  return 0;
+}
+```
+
+在回调函数和运行期动态绑定的时候，大量的用到了指向函数的指针
+
+
+
+#### 2.把指向函数的指针做为函数的参数
+
+```c
+int add(int a,int b){
+    return a+b;
+}
+
+int max(int a,int b){
+    return a>b?a:b;
+}
+
+void func(int(*p)(int,int),int a,int b){//第一个参数是指向函数的指针
+    return p(a,b);//通过指向函数的指针调用一个函数
+}
+
+int main(){
+	int i = func(add,6,9);//add函数在这里就叫回调函数，android中的点击事件
+  printf("%d\n",i);
+  return 0;
+}
+
+```
+
+
+
+## 五、内存操作函数
+
+
+
+#### 1.memset
+
+```c
+int main(){
+  int buf[1024] = {0};//这个方法只能用于定义数组同时初始化内容
+  buf[0] = 8;
+  buf[1] = 9;
+  buf[4] = 8;
+  
+  //想将这个buf再一次初始化为0?
+  //不能用buf[10] = {0}
+  int i;
+  for(i = 0;i<1024;i++){
+      buf[i] = 0;
+  }
+  
+  memset(buf,0,sizeof(buf));//第一个参数是要设置的内存地址；第二个参数是要设置的值；第三个参数是内存大小单位是字节
+  //将一块内存初始化为0最常见的方法
+  
+  
+  
+  return 0;
+}
+```
+
+memset需要#include\<string.h>
+
+![image_point4](/img/image_point4.png)
+
+#### 2.memcpy
+
+```c
+int main(){
+  int buf1[10] = {1,2,3,4,5,6,7,8,9,10};
+  int buf2[10];
+  memcpy(buf2,buf1,sizeof(buf1));//将buf1的内存内内容全部拷贝到buf2,拷贝大小为第三个参数：字节
+ 
+  return 0;
+}
+```
+
+
+
+#### 3.memmove
+
+```c
+int main(){
+  int buf1[10] = {1,2,3,4,5,6,7,8,9,10};
+  int buf2[10];
+  memmove(buf2,buf1,sizeof(buf1));//和memcpy结果一致，区别是什么？
+}
+```
+
+![image_point5](/img/image_point5.png)
+
+#### 4.区别到底在哪？
+
+建议，使用memcpy的时候，一定要确保内存没有重叠区域，但是没有提memmove
+
+什么叫内存重叠区域？
+
+```c
+int main(){
+    int buf[10] = {1,2,3,4,5,6,7,8,9,10};
+  
+  int *start = buf + 3;
+  int *end = buf + 5;
+  
+  memcpy(start,end,16);//拷贝时不建义内存重叠
+  
+  int i;
+  for(i = 0;i<10;i++){
+      printf("buf[%d] = %d\n",i,buf[i]);
+  }
+}
+```
+
+![image_point6](img/image_point6.png)
+
+
+
