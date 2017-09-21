@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "C语言学习笔记（一）指针"
+title:      "C语言复习笔记（一）指针"
 date:       2017-09-19 12:00:00
 author:     "ZhangLong"
 catalog: true
@@ -8,7 +8,7 @@ catalog: true
 
 
 
-因为平时能用到C的地方实在太少了，特此记录，重新自学一遍C语言，加深记忆
+因为平时能用到C的地方实在太少了，特此记录，重新复习一遍C语言，加深记忆
 
 ## 一、指针数组以及多级指针
 
@@ -428,7 +428,7 @@ int main(){
 }
 ```
 
-![image_point6](img/image_point6.png)
+![image_point6](/img/image_point6.png)
 
 
 
