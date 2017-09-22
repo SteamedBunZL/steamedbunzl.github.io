@@ -1,9 +1,9 @@
 # Site settings
-title: 史蒂夫龙驼
+title: 史蒂夫·龙驼
 SEOTitle: 张龙的博客 | Stevezhang Blog
 header-img: img/home-bg.jpg
 email: stevezhang@tcl.com
-description: ""
+description: "一个会编程的龙驼"
 keyword: ""
 url: "http://stevezhang.me"              # your host, for absolute URL
 baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
