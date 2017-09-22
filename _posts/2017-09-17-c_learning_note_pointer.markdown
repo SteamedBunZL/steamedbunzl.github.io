@@ -430,5 +430,7 @@ int main(){
 
 ![image_point6](/img/image_point6.png)
 
+指针总结
 
+![image_point7](/img/image_point7.png)
 
