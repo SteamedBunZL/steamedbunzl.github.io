@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "C语言复习笔记（一）指针"
+title:      "C语言复习笔记（二）内存"
 date:       2017-09-29 12:00:00
 author:     "ZhangLong"
 catalog: true
@@ -140,7 +140,7 @@ int main(){
 
 
 
-![image_memory1](/image_memory1.png)
+![image_memory1](/img/image_memory1.png)
 
 
 
