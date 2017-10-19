@@ -434,3 +434,79 @@ int main(){
 
 ![image_point7](/img/image_point7.png)
 
+
+
+
+
+六、字符指针与字符串
+
+1.指针和字符串
+
+```c
+char *p = buff;
+*(p + 5) = 'a';
+p[5] = 'b';
+p += 5;
+*p = 'c';
+p[3] = ' ';//这里使用p+=5 使指针指针位置发生了改变 下面的p[3] 要在 +5的前提下计算
+```
+
+
+
+2.通过指针访问字符串数组
+
+
+
+3.函数的参数为char
+
+```c
+void print_array(int *p,int n){//如果参数是一个Int数组，就必须传递第二个参数用来标识数组的长度
+  int i;
+  for(i = 0;i<n;i++){
+    printf("p[%d] = %d\n",i,p[i]);
+  }
+}
+
+void print_str(char *s){//如果参数是一个字符串，就不需要第二个参数，因为字符串是明确的以'\0'结尾的，所以在函数内部是有条件做为循环终止依据的
+  while(*s){
+    printf("%c",*s);
+    s++;
+  }
+}
+```
+
+4.指针数组做为main函数的形参
+
+```c
+int main(int argc,char *args[]){
+  printf("%d\n",argc);//输出：1
+  //argc 代表程序执行的时候有几个参数，程序本身就是一个参数，所以argc最小值为1
+  //第二个参数是一个指针数组，其中每个成员的类型是char *
+  printf("args[0] = %s\n",args[0]);
+  //args是一个指针数组，那么他的成员数量是多少呢？argc这个参数就是告诉main函数args有多少成员的
+  
+  int i;
+  for(i = 0;i<argc;i++){
+      printf("args[%d] = %s\n",i,args[i]);//输出 main-a asdf sde
+  }
+  return 0;
+}
+```
+
+执行系统调用参数传递
+
+```c
+int main(int argc,char *args[]){
+  char buff[100] = "dir";
+  int i;
+  for(int i = 1;i<argc;i++){
+      strcat(buf," ");
+      strcat(buf,args[i]);
+  }
+  system("dir");//执行系统调用 输入 main-a dir c: 执行dir c:
+  return 0;
+}
+```
+
+
+
