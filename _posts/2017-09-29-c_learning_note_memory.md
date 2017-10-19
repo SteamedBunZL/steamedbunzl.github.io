@@ -352,11 +352,11 @@ int main(){
 
 
 
-![image_memory3](/img/image_memory4.png)
+![image_memory4](/img/image_memory4.png)
 
 
 
-![image_memory3](/img/image_memory5.png)
+![image_memory5](/img/image_memory5.png)
 
 
 
