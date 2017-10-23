@@ -1,0 +1,198 @@
+---
+layout:     post
+title:      "利用loop()中的日志，检测耗时方法"
+date:       2017-10-23 12:00:00
+author:     "ZhangLong"
+catalog: true
+---
+
+
+
+
+
+今天公司同事分享了一个这个方法去检测UI线程中的耗时操作，主要是为了解决卡UI线程去解决应用卡顿的问题，大概看了一下，这个方法可以在一定程度上解决UI的卡顿问题，研究了下原理，非常简单。
+
+
+
+其实，这个思路还是很吊的，巧妙的利用了原码中的日志输出，在loop()方法中，有一段原码级的日志log，可以利它来测出handler的dipatchMessage的时间，这样就可以检测到部分UI线程是否有耗时操作了，我之所以说这个在一定程度上解决界面绘制的卡顿，因为界面绘制卡顿的问题不单单只由此导致，可能引起的原因很多，举个例子，如果在绘制过程中，进程内存使用过高，或者某些泄漏和代码级错误，导致频繁GC的话，同样会导致绘制卡顿的，这个以后我们会详细的分析。
+
+
+
+那么，上源码，其实之前看过很多次的handler和looper的源码，真没注意到这里有这么个日志
+
+```java
+ public static void loop() {
+        final Looper me = myLooper();
+        if (me == null) {
+            throw new RuntimeException("No Looper; Looper.prepare() wasn't called on this thread.");
+        }
+        final MessageQueue queue = me.mQueue;
+
+        // Make sure the identity of this thread is that of the local process,
+        // and keep track of what that identity token actually is.
+        Binder.clearCallingIdentity();
+        final long ident = Binder.clearCallingIdentity();
+
+        for (;;) {
+            Message msg = queue.next(); // might block
+            if (msg == null) {
+                // No message indicates that the message queue is quitting.
+                return;
+            }
+
+            // This must be in a local variable, in case a UI event sets the logger
+            final Printer logging = me.mLogging;
+            if (logging != null) {
+                logging.println(">>>>> Dispatching to " + msg.target + " " +
+                        msg.callback + ": " + msg.what);
+            }
+
+            final long traceTag = me.mTraceTag;
+            if (traceTag != 0 && Trace.isTagEnabled(traceTag)) {
+                Trace.traceBegin(traceTag, msg.target.getTraceName(msg));
+            }
+            try {
+                msg.target.dispatchMessage(msg);
+            } finally {
+                if (traceTag != 0) {
+                    Trace.traceEnd(traceTag);
+                }
+            }
+
+            if (logging != null) {
+                logging.println("<<<<< Finished to " + msg.target + " " + msg.callback);
+            }
+
+            // Make sure that during the course of dispatching the
+            // identity of the thread wasn't corrupted.
+            final long newIdent = Binder.clearCallingIdentity();
+            if (ident != newIdent) {
+                Log.wtf(TAG, "Thread identity changed from 0x"
+                        + Long.toHexString(ident) + " to 0x"
+                        + Long.toHexString(newIdent) + " while dispatching to "
+                        + msg.target.getClass().getName() + " "
+                        + msg.callback + " what=" + msg.what);
+            }
+
+            msg.recycleUnchecked();
+        }
+    }
+```
+
+太多，太多，其实我们需要关注的只有那么三四行
+
+注意在msg.target.dispatchMessage(msg)上下，各有一个logging的日志输出">>>>> Dispatching to " 和"<<<<< Finished to "，那么这个logging是什么呢？
+
+```java
+public interface Printer {
+    /**
+     * Write a line of text to the output.  There is no need to terminate
+     * the given string with a newline.
+     */
+    void println(String x);
+}
+
+```
+
+这个是androi.util下的一个包的接口，是Google后添加的，最最关键的是，**这个类是开放的**，我们可以在上层代码中实现这个接口，这样我们就可以自己去面向切面编程做一些事情，可以免去代理的复杂过程。
+
+```java
+final Printer logging = me.mLogging;
+```
+
+这个me就是Looper本身，mLogging为Looper的成员变量
+
+```java
+private Printer mLogging;
+```
+
+Looper还开放了一个可以灵活设置Logging的方法，太贴心了！！
+
+```java
+public void setMessageLogging(@Nullable Printer printer) {
+        mLogging = printer;
+}
+```
+
+至此，源码部分我们撸完了，基本上的准备也完成了，万事具备，只欠东风
+
+说白了就是一句话我们去获取两次日志之间的时间差，如果超过我们设定的时间，就把当前的方法栈打印出来，如果少于时间，我们就不去打印
+
+想必你已经知道，具体的代码使用了鸿洋大神的原创code，在此膜拜下鸿洋大大，我们不生产代码，我们只是代码的搬运工，哦耶！
+
+```java
+public class BlockDetectByPrinter {
+
+    public static void start() {
+
+        Looper.getMainLooper().setMessageLogging(new Printer() {
+
+            private static final String START = ">>>>> Dispatching";
+            private static final String END = "<<<<< Finished";
+
+            @Override
+            public void println(String x) {
+                if (x.startsWith(START)) {
+                    LogMonitor.getInstance().startMonitor();
+                }
+                if (x.startsWith(END)) {
+                    LogMonitor.getInstance().removeMonitor();
+                }
+            }
+        });
+
+    }
+}
+```
+
+下面上LogMonitor这个单例的code
+
+```java
+public class LogMonitor {
+
+    private static LogMonitor sInstance = new LogMonitor();
+    private HandlerThread mLogThread = new HandlerThread("log");
+    private Handler mIoHandler;
+    private static final long TIME_BLOCK = 1000L;
+
+    private LogMonitor() {
+        mLogThread.start();
+        mIoHandler = new Handler(mLogThread.getLooper());
+    }
+
+    private static Runnable mLogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            StringBuilder sb = new StringBuilder();
+            StackTraceElement[] stackTrace = Looper.getMainLooper().getThread().getStackTrace();
+            for (StackTraceElement s : stackTrace) {
+                sb.append(s.toString() + "\n");
+            }
+            Log.e("TAG", sb.toString());
+        }
+    };
+
+    public static LogMonitor getInstance() {
+        return sInstance;
+    }
+
+    public boolean isMonitor() {
+        return mIoHandler.hasCallbacks(mLogRunnable);
+    }
+
+    public void startMonitor() {
+        mIoHandler.postDelayed(mLogRunnable, TIME_BLOCK);
+    }
+
+    public void removeMonitor() {
+        mIoHandler.removeCallbacks(mLogRunnable);
+    }
+
+}
+```
+
+在1000ms之前执行完就移除，在之后就打印，就是这么简单。我们以后还会介绍其他的方法去检测绘制卡顿的问题和解决方案，这个只是其中的一种。
+
+
+
+写了这么多，其实有一点点想法，现在app多数都是以多进程存在的，这个方法在Appcliation的onCreate里执行会扫出多个进程的卡UI线程问题，如果只是为了界面的绘制的话，其实可以限定只在UI进程里去执行这个切面的计时操作，乖乖，不看不知道，一看吓一跳，日志里如此之多的问题显露，看来还是应该在平时写代码的时候就多多注意规范和书写。

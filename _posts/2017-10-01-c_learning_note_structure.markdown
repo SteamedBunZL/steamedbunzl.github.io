@@ -57,13 +57,41 @@ int main(){
 
 ```c
 struct A{
+  	char c;
     int a;
+  	char b;
 };
 
 int main(){
     struct A a;
-  printf ("%d\n",sizeof(a));
+  printf ("%d\n",sizeof(a));//输出12
   return 0
 }
 ```
+
+内存中占用12个字节  
+
+内存中示意图
+
+
+
+
+
+
+
+```c
+struct A{
+    char a;
+  short b;
+  int c;
+  short d;
+  char e;
+}
+```
+
+内存中示意图
+
+
+
+
 
