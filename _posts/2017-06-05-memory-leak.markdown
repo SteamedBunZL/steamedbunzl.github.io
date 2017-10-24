@@ -4,6 +4,8 @@ title:      "Android内存泄漏总结"
 date:       2017-06-05 12:00:00
 author:     "ZhangLong"
 catalog: true
+tags:
+    - Android
 ---
 
 

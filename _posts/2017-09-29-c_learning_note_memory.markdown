@@ -4,6 +4,8 @@ title:      "C语言复习笔记（二）内存"
 date:       2017-09-29 12:00:00
 author:     "ZhangLong"
 catalog: true
+tags:
+    - C
 ---
 
 

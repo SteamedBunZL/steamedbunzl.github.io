@@ -4,6 +4,8 @@ title:      "利用loop()中的日志，检测耗时方法"
 date:       2017-10-23 12:00:00
 author:     "ZhangLong"
 catalog: true
+tags:
+    - Android
 ---
 
 

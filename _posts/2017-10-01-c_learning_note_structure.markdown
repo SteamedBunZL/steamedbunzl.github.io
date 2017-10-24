@@ -4,6 +4,8 @@ title:      "C语言复习笔记（三）结构体，联合体，枚举与typede
 date:       2017-10-01 12:00:00
 author:     "ZhangLong"
 catalog: true
+tags:
+    - C
 ---
 
 
