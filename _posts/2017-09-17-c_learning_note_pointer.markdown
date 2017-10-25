@@ -4,6 +4,8 @@ title:      "C语言复习笔记（一）指针"
 date:       2017-09-19 12:00:00
 author:     "ZhangLong"
 catalog: true
+tags:
+    - C
 ---
 
 
