@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "跨进程存取TrayPreference源码分析"
+title:      "跨进程SharedPreference替代方案TrayPreference源码分析"
 date:       2018-04-2 12:00:00
 author:     "ZhangLong"
 catalog: true
