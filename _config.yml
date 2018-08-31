@@ -12,8 +12,8 @@ baseurl: ""                             # for example, '/blog' if your blog host
 
 # Sidebar settings
 sidebar: true  #添加侧边栏
-sidebar-about-description: "Android达摩院"
-sidebar-avatar: /img/zhifubao.jpg
+sidebar-about-description: "Android研究僧"
+#sidebar-avatar: /img/zhifubao.jpg
 
 
 # Build settings
