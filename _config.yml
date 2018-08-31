@@ -21,6 +21,8 @@ sidebar-about-description: "Android研究僧"
 highlighter: rouge
 permalink: /:year/:month/:day/:title/
 paginate: 10
+paginate_path: "page:num"
+
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md","README.zh.md"]
 anchorjs: true                          # if you want to customize anchor. check out line:181 of `post.html`
 
