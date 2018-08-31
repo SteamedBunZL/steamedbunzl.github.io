@@ -1,0 +1,296 @@
+---
+layout:     post
+title:      "NDK开发系列-JNI"
+date:       2017-03-02 12:00:00
+author:     "ZhangLong"
+catalog: true
+tags:
+    - NDK
+---
+
+
+
+本篇作为NDK开发系列的第一篇，主要讲一下JNI过程，涉及到的内容有函数静态注册、动态注册、Java调用C/C++、C/C++调用Java、Jni native线程等
+
+
+
+事例部分均采用cmake构建方式，cmake的构建和android.mk及applicaion.mk后续的文章会讲
+
+
+
+## Java 调用C/C++
+
+我们新创建一个项目，支持cmake构建模式，如图所示，我们得到一个as工程
+
+![cmake](/img/cmake.png)
+
+系统默认帮我们创建了一个方法
+
+```java
+	/**
+     * A native method that is implemented by the 'native-lib' native library,
+     * which is packaged with this application.
+     */
+     public native String stringFromJNI();
+```
+
+而且与native-lib.cpp中的函数进行了链接，在方法左侧的箭头小标可以互相切换，我们看下stringFromJNI对应的native方法
+
+```c++
+extern "C"
+JNIEXPORT jstring
+
+JNICALL
+Java_steve_com_jni_MainActivity_stringFromJNI(JNIEnv *env,jobject /* this */) {
+    std::string hello = "Hello from C++";
+    return env->NewStringUTF(hello.c_str());
+}
+```
+
+这里简单解析下几个地方，这里的注册方式采用的就是**静态注册**的方式
+
+`extern "C"`  使用c的方式去生成编码文件，使c++里兼容c的库
+
+`JNIEXPORT/JNICALL`  这里定义了宏，mac和linux系统下这里都可以删掉
+
+主要看下方法的定义方式，全类名 + 方法名的命名方式，第一个参数JNIEnv的指针，类似于Android中的环境变量，但是JNIEnv是线程相关的，记住这点很重要，我们下面要说的线程中使用也会再次提及这里，JNI中的几乎全部调用均来自于此，第二个参数传入的是MainActivity这个对象本身
+
+具体的基本类型及引用类型，还有一些JNI的语法这里就不再介绍，请同学参考相关资料，网上这类的基础资料还是很多的
+
+
+
+运行项目，stringFromJNI就会被调用，屏幕上会输出 Hello from C++ 字样，说明简单的Java调C++过程成功了
+
+
+
+## C/C++调用Java方法
+
+我们这里再弄的复杂点，结合native线程，如何在native线程里接收到Java传递过来的参数，并且回调Java的方法
+
+
+
+#### 1.系统函数 int JNI_OnLoad(JavaVM *vm,void *re)
+
+我们知道Java中要加载动态库
+
+```java
+    static {
+        System.loadLibrary("native-lib");
+    }
+```
+
+这句话调用的时候，在native中就会使JNI_OnLoad函数被系统调用起
+
+那么这个`JNI_OnLoad`函数都可以做什么呢？
+
+1.获取JavaVM的指针，线程中获取JNIEnv时要使用到  
+
+2.动态注册函数，这个我们后面再讲
+
+注意，这个函数返回的是一个int型，代表jni的版本号
+
+```c++
+JavaVM* _vm;
+
+int JNI_OnLoad(JavaVM *vm,void *re){
+    _vm = vm;
+    return JNI_VERSION_1_6;
+}
+```
+
+这里我们全局成员函数保存了JavaVM的指针，后面会用到
+
+
+
+#### 2.创建native线程
+
+```c++
+void Java_steve_com_jni_MainActivity_testNativeThread(JNIEnv *env,jobject instance){
+    pthread_t pid;//声明一个句柄
+    pthread_create(&pid,0,threadTaks,0);
+}
+
+
+void* threadTaks(void* args){
+   	
+}
+```
+
+第一个参数传入二级指针，第二参数基本传0即可，主要看第三个参数，这里传入的是函数的指针，第四个参数传入的是第三个参数函数的参数，也即我们想通过线程传递数据的途径。
+
+我们下面定义了一个这样的函数，在调用pthread_create的时候就会开启一个线程并执行threaTask函数里的功能了，这样一个简单的native线程的使用就可以了
+
+
+
+#### 3.如何在线程中执行JNI函数？
+
+我们知道，如果想在native中执行函数，必须得使用到JNIEnv对象的指针，那么我们怎么在线程中拿到呢？这里给出一个新手常犯的错误，我们在上面讲到了，线程中传递的最后一个参数，那么在发生jni调用`Java_steve_com_jni_MainActivity_testNativeThread`的时候，系统给了我们JNIEnv的指针，我们把它传给到线程就行了呗？！说做就做
+
+先封装一个类 Context 里包含jobject和JNIEnv两个对象
+
+```c++
+struct Context{
+    jobject instance;
+    JNIEnv* env;
+};
+```
+
+我们改造下上面线程调用的代码，把context传入进去
+
+```c++
+void Java_steve_com_jni_MainActivity_testNativeThread(JNIEnv *env,jobject instance){
+    pthread_t pid;//声明一个句柄
+    Context* context = new Context;//new一个Context
+    context->instance = env->NewGlobalRef(instance);
+    context->env = env;
+    pthread_create(&pid,0,threadTaks,context);
+}
+```
+
+这样我们就把context传给了线程，我们在theadTask函数中拿到了context就可以拿到JNIEnv和jobject，然后就可以为所欲为了，事情真是这样的么，试下
+
+```c++
+void* threadTaks(void* args){
+    Context* context = (Context *) args;
+    JNIEnv* env = context->env;
+	std::string hello = "Hello from C++";
+    env->NewStringUTF(hello.c_str());
+    return 0;
+}
+```
+
+但是发现env并没有生效，百思不得其解，到底问题出在哪里？我们不是把JNIEnv传过去了么
+
+其实JNIEnv是线程相关的对象，不同线程是不共享的，这个有点像Java中的ThreadLocal线程本地变量一样，线程和线程之前是相互隔离的，所以我们不能把JNIEnv在不同的线程里进行传递
+
+那么问题来了，我们该怎么在线程中得到JNIEnv呢，还记得我们在这节一开始说到的JavaVM么，对，那时保存了JavaVM现在用处就来了，从它这里就可以获得当前线程的JNIEnv
+
+最终的代码应该是这样的
+
+```c++
+struct Context{
+    jobject instance;
+};
+
+void testNativeThread(JNIEnv *env,jobject instance){
+    pthread_t pid;
+    Context* context = new Context;
+    context->instance = env->NewGlobalRef(instance);
+    pthread_create(&pid,0,threadTaks,context);
+}
+
+void* threadTaks(void* args){
+    JNIEnv *env;
+    jint i = _vm->AttachCurrentThread(&env,0);
+    if(i != JNI_OK)
+        return 0;
+
+    Context* context = (Context *) args;
+    jclass clazz = env->GetObjectClass(context->instance);
+    jmethodID method = env->GetMethodID(clazz,"updateUI","()V");
+    env->CallVoidMethod(context->instance,method);
+
+    delete(context);
+    context = 0;
+
+    _vm->DetachCurrentThread();
+    return 0;
+}
+```
+
+这里还要解释下，我们通过jobject拿到jclass然后，通过java方法签名拿到jmethodId，最后使用CallVoidMethod方法，我们就会成功回调java中的名updateUI方法
+
+> 这里小提下方法签名的规则，我们在Java中的方法是updateUI() 因为没有参数，所以()里没有东西，后面的跟着V代表的是返回void，如果int updateUI(int i) 那么方法的签名就是(I)I 这是基本类型，签名的规则会附在最后，引用还会有一点点不同，见附录吧，这里不细说了
+>
+
+这里我们成功的模拟了在native中开始线程，执行异步任务，然后回调回java的中的方法，看起来是不是很像日常开发中的某种场景
+
+
+
+## 动态注册函数
+
+我不知道大家有没有看android 源码的习惯，如果追的深的同学甚至会追到native层的源码，那么你们发现其实大量的JNI的函数调用都是动态注册的
+
+动态注册可以规避静态注册时函数名过长的问题，同时在数组里列出调用函数看起来一目了然，既然说到了，我们就来看看如何实现吧
+
+这里还是会使用到上面提到JNI_OnLoad系统函数，触发我们的动态注册
+
+```c++
+void dynamicNative(JNIEnv *env,jobject jobj){
+    LOGE("dynamicNative 动态注册");
+}
+
+void dynamicNative2(JNIEnv *env,jobject jobj,jint i){
+    LOGE("dynamicNative2 动态注册 %d\n",i);
+}
+
+static const JNINativeMethod mMethods[] = {
+        {"dynamicJavaTest","()V", (void *) dynamicNative},
+        {"dynamicJavaTest2","(I)V", (void *) dynamicNative2}
+};
+
+static const char *mClassName = "steve/com/jni/MainActivity";
+
+int JNI_OnLoad(JavaVM *vm,void *re){
+    LOGE("JNI_OnLoad");
+    _vm = vm;
+    JNIEnv *env = NULL;
+    int r = vm->GetEnv((void **) &env, JNI_VERSION_1_6);
+    if (r != JNI_OK){
+        return -1;
+    }
+
+    jclass clazz = env->FindClass(mClassName);
+    env->RegisterNatives(clazz,mMethods, sizeof(mMethods)/ sizeof(JNINativeMethod));
+    return JNI_VERSION_1_6;
+}
+```
+
+这里解释下JNINativeMethod数组，这里包含的是我们在Java中声明和在cpp中声明的函数的是一一对应的，好了，在Java层调用dynamicJavaTest 和 dynamicJavaTest2 就会调用到我们 dynamicNative 和 dynamicNative2，这里要注意下 dynamicNative 函数中的参数，这个是必须要有的，如果还有其他参数，应该在这两个参数后继续添加
+
+好了，今天的介绍就到这里了，是不是很基础，哈哈，基础中又有那么一丢丢干货，下篇文章再见！
+
+
+
+## 附录一
+
+| Java类型  | 本地类型      | 描述                                     |
+| --------- | ------------- | ---------------------------------------- |
+| boolean   | jboolean      | C/C++8位整型                             |
+| byte      | jbyte         | C/C++带符号的8位整型                     |
+| char      | jchar         | C/C++无符号的16位整型                    |
+| short     | jshort        | C/C++带符号的16位整型                    |
+| int       | jint          | C/C++带符号的32位整型                    |
+| long      | jlong         | C/C++带符号的64位整型                    |
+| float     | jfloat        | C/C++32位浮点型                          |
+| double    | jdouble       | C/C++64位浮点型                          |
+| Object    | jobject       | 任何Java对象，或者没有对应java类型的对象 |
+| Class     | jclass        | Class对象                                |
+| String    | jstring       | 字符串对象                               |
+| Object[]  | jobjectArray  | 任何对象的数组                           |
+| boolean[] | jbooleanArray | 布尔型数组                               |
+| byte[]    | jbyteArray    | 比特型数组                               |
+| char[]    | jcharArray    | 字符型数组                               |
+| short[]   | jshortArray   | 短整型数组                               |
+| int[]     | jintArray     | 整型数组                                 |
+| long[]    | jlongArray    | 长整型数组                               |
+| float[]   | jfloatArray   | 浮点型数组                               |
+| double[]  | jdoubleArray  | 双浮点型数组                             |
+
+
+
+## 附录二
+
+| Java类型 | 签名             |
+| -------- | ---------------- |
+| boolean  | Z                |
+| short    | S                |
+| float    | F                |
+| byte     | B                |
+| int      | I                |
+| double   | D                |
+| char     | C                |
+| long     | J                |
+| void     | V                |
+| 引用类型 | L + 全限定名 + ; |
+| 数组     | [+类型签名       |
