@@ -22,7 +22,7 @@ tags:
 
 我们新创建一个项目，支持cmake构建模式，如图所示，我们得到一个as工程
 
-![cmake工程图](/img/cmake工程图.png)
+![cmake](/img/cmake.png)
 
 系统默认帮我们创建了一个方法
 
