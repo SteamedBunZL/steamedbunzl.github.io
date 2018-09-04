@@ -58,7 +58,7 @@ ga_domain: stevezhang.me
 
 # Featured Tags
 featured-tags: true                     # whether or not using Feature-Tags
-featured-condition-size: 10    
+featured-condition-size: 2    
 
 
 
